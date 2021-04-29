@@ -1,10 +1,12 @@
 import json
 import pyrebase
 import psycopg2
+import base64
 from flask import Flask, request, jsonify, render_template,redirect
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+import time
 import datetime
 from datetime import timedelta
 import requests
@@ -35,6 +37,17 @@ firebase= pyrebase.initialize_app(config)
 storage= firebase.storage()
 
 # ============ login==============
+# with open("BANH CAM VINH.PNG", "rb") as img_file:
+#     my_string = base64.b64encode(img_file.read())
+
+# imgdata = base64.b64decode(my_string)
+# # print(imgdata)
+# filename = 'new_image.jpg'  # I assume you have a way of picking unique filenames
+# # with open(filename, 'wb') as f:
+# #     f.write(imgdata)
+
+# storage.child("/img/"+filename).put(imgdata)
+
 def myconverter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
@@ -83,7 +96,8 @@ def login():
             additional_claims = {"role":role}
             access_token = create_access_token(email, additional_claims=additional_claims)
             refresh_token = create_refresh_token(identity=email)
-            resp=jsonify(access_token=access_token,refresh_token=refresh_token)
+            resp=jsonify(access_token=access_token,refresh_token=refresh_token,email=email,role=role)
+            # resp= jsonify({"access_token":access_token,"refresh_token":refresh_token,"email":email,"role":role})
             set_access_cookies(resp,access_token)
             return resp
 
@@ -106,9 +120,9 @@ def refresh():
 @jwt_required()
 def test():
     email= get_jwt_identity()
+    print(email)
     claims = get_jwt()
     return jsonify(claims['role'])
-
 
 @app.route('/index')
 def index1():
@@ -239,10 +253,41 @@ def rt_approve(id_post):
         pass
     return jsonify("Không có role này")
 
+
 # ========== Thêm bài viết=======
 @app.route('/post/add',methods=['POST'])
-def add():
-    pass
+def post_add():
+    # {"title":"abc","content":"content","category":1,"img":"imgstr"}
+    json = request.get_json()
+
+    title= json['title']
+    title=title.trip()
+    if not title:
+        return "Chưa nhập tiêu đề"
+
+    content= json['content']
+    content= content.strip()
+    if not content:
+        return "Chưa nhập nội dung"
+    
+    # Get last post id
+    cur = con.cursor()
+    cur.execute("SELECT id_post from post order by id_post desc limit 1")
+    rows = cur.fetchall()
+    lastid= rows[0][0]
+
+    img_base64_str= json['img']
+    img_decode_base64 = base64.b64decode(img_base64_str)
+    storage.child("/img/"+str(lastid)).put(img_decode_base64)
+    id_post= lastid+1
+    status= 0
+    rating= 0
+    create_time= datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S") 
+
+    cur = con.cursor()
+    cur.execute("insert into post values (?,?,?,?,?,?,?,?,?)",lastid+1,title,content,status,img,createtime,createby,idcategory,rating)
+    con.commit()
+    return jsonify("Đã đăng thành công thành công")
 
 
 # ========== Xóa bài viết =======

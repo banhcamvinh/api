@@ -37,18 +37,23 @@ firebase= pyrebase.initialize_app(config)
 storage= firebase.storage()
 
 # ============ login==============
-with open("BANH CAM VINH.PNG", "rb") as img_file:
-    my_string = base64.b64encode(img_file.read())
+# with open("BANH CAM VINH.PNG", "rb") as img_file:
+#     my_string = base64.b64encode(img_file.read())
 
-imgdata = base64.b64decode(my_string)
-print(type(imgdata))
-filename = 'new_image_2'  # I assume you have a way of picking unique filenames
-# with open(filename, 'wb') as f:
-#     f.write(imgdata)
+# imgdata = base64.b64decode(my_string)
+# print(type(imgdata))
+# filename = 'new_image_2'  # I assume you have a way of picking unique filenames
+# # with open(filename, 'wb') as f:
+# #     f.write(imgdata)
 
 # storage.child("/img/"+filename).put(imgdata)
 
-
+with open("BANH CAM VINH.PNG", "rb") as img_file:
+    my_string = base64.b64encode(img_file.read())
+    print(my_string)
+imgdata = base64.b64decode(my_string)
+# s= imgdata.decode("ascii")
+# print(s)
 
 def myconverter(o):
     if isinstance(o, datetime.datetime):
@@ -270,19 +275,19 @@ def rt_approve(id_post):
 @jwt_required()
 def post_add():
     # {"title":"abc","content":"content","category":1,"img":"imgstr"}
-    json = request.get_json()
-
-    title= json['title']
+    myjson = request.get_json()
+    myjson = json.loads(myjson) 
+    title= myjson['title']
     title=title.trip()
     if not title:
         return "Chưa nhập tiêu đề"
 
-    content= json['content']
+    content= myjson['content']
     content= content.strip()
     if not content:
         return "Chưa nhập nội dung"
 
-    id_category= int(json['category'])
+    id_category= int(myjson['category'])
     
     # Get last post id
     cur = con.cursor()
@@ -290,7 +295,7 @@ def post_add():
     rows = cur.fetchall()
     lastid= rows[0][0]
 
-    img_base64_str= json['img']
+    img_base64_str= myjson['img']
     img_decode_base64 = base64.b64decode(img_base64_str)
     storage.child("/img/"+str(lastid)).put(img_decode_base64)
     img_url= storage.child("/img/"+str(lastid)).get_url(None)
@@ -307,9 +312,47 @@ def post_add():
     con.commit()
     return jsonify("Đã đăng thành công thành công")
 
-
 # ========== Xóa bài viết =======
+@app.route('/post/del/<int:id_post',methods=['POST'])
+@jwt_required()
+def post_del():
+    pass
+    
+
 #=========== Sủa bài viết =======
+@app.route('/post/edit',methods=['POST'])
+@jwt_required()
+def post_edit():
+    myjson = request.get_json()
+    myjson= json.loads(myjson)
+    title= myjson['title']
+    title=title.trip()
+    if not title:
+        return "Chưa nhập tiêu đề"
+
+    content= myjson['content']
+    content= content.strip()
+    if not content: 
+        return "Chưa nhập nội dung"
+
+    id_category= int(myjson['category'])
+    
+    id_post= int(myjson['post_id'])
+
+    img_base64_str= myjson['img']
+    if img_base64_str != "":
+        img_decode_base64 = base64.b64decode(img_base64_str)
+        storage.child("/img/"+str(id_post)).put(img_decode_base64)    
+    img_url= storage.child("/img/"+str(id_post)).get_url(None)
+
+    status= 0
+    email= get_jwt_identity()
+
+    cur = con.cursor()
+    cur.execute("update post set title=%s,content=%s,status=%s,img=%s,id_category=%s where id_post= %s",(title,content,status,img_url,id_category,id_post))
+    con.commit()
+    return jsonify("Đã edit thành công")
+
 # ========== Thêm danh mục=======
 # ========== Xóa danh mục =======
 #=========== Sủa danh mục =======

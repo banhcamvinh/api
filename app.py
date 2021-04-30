@@ -48,6 +48,8 @@ storage= firebase.storage()
 
 # storage.child("/img/"+filename).put(imgdata)
 
+
+
 def myconverter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
@@ -256,6 +258,7 @@ def rt_approve(id_post):
 
 # ========== Thêm bài viết=======
 @app.route('/post/add',methods=['POST'])
+@jwt_required()
 def post_add():
     # {"title":"abc","content":"content","category":1,"img":"imgstr"}
     json = request.get_json()
@@ -269,6 +272,8 @@ def post_add():
     content= content.strip()
     if not content:
         return "Chưa nhập nội dung"
+
+    id_category= int(json['category'])
     
     # Get last post id
     cur = con.cursor()
@@ -279,13 +284,17 @@ def post_add():
     img_base64_str= json['img']
     img_decode_base64 = base64.b64decode(img_base64_str)
     storage.child("/img/"+str(lastid)).put(img_decode_base64)
+    img_url= storage.child("/img/"+str(lastid)).get_url(None)
+
     id_post= lastid+1
     status= 0
     rating= 0
     create_time= datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S") 
+    
+    email= get_jwt_identity()
 
     cur = con.cursor()
-    cur.execute("insert into post values (?,?,?,?,?,?,?,?,?)",lastid+1,title,content,status,img,createtime,createby,idcategory,rating)
+    cur.execute("insert into post values (?,?,?,?,?,?,?,?,?)",id_post,title,content,status,img_url,create_time,email,id_category,rating)
     con.commit()
     return jsonify("Đã đăng thành công thành công")
 

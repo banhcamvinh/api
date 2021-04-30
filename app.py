@@ -274,6 +274,11 @@ def rt_approve(id_post):
 @app.route('/post/add',methods=['POST'])
 @jwt_required()
 def post_add():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
     # {"title":"abc","content":"content","category":1,"img":"imgstr"}
     myjson = request.get_json()
     myjson = json.loads(myjson) 
@@ -315,14 +320,26 @@ def post_add():
 # ========== Xóa bài viết =======
 @app.route('/post/del/<int:id_post',methods=['POST'])
 @jwt_required()
-def post_del():
-    pass
-    
+def post_del(id_post):
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
 
+    cur = con.cursor()
+    cur.execute("DELETE FROM post WHERE id_post=%s;",(id_post))
+    con.commit()
+    return jsonify("Đã đăng thành công thành công")
+    
 #=========== Sủa bài viết =======
 @app.route('/post/edit',methods=['POST'])
 @jwt_required()
 def post_edit():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
     myjson = request.get_json()
     myjson= json.loads(myjson)
     title= myjson['title']
@@ -354,11 +371,154 @@ def post_edit():
     return jsonify("Đã edit thành công")
 
 # ========== Thêm danh mục=======
+@app.route('/category/add',methods=['POST'])
+@jwt_required()
+def category_add():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
+    myjson = request.get_json()
+    myjson = json.loads(myjson) 
+    category_name = myjson['category_name']
+    category_name= category_name.trip()
+    if not category_name:
+        return "Chưa nhập tên"
+
+    level= int(myjson['level'])
+
+    # Get last post id
+    cur = con.cursor()
+    cur.execute("SELECT id_category from category order by id_category desc limit 1")
+    rows = cur.fetchall()
+    lastid= rows[0][0]
+    id_category= lastid+1
+
+    id_parent= myjson['id_parent']
+
+    cur = con.cursor()
+    cur.execute("insert into category values (%s,%s,%s,%s)",(id_category,category_name,id_parent,level))
+    con.commit()
+    return jsonify("Đã đăng thành công thành công")
+
 # ========== Xóa danh mục =======
+@app.route('/category/del/<int:id_category',methods=['POST'])
+@jwt_required()
+def category_del(id_category):
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
+    cur = con.cursor()
+    cur.execute("DELETE FROM category WHERE id_category=%s;",(id_category))
+    con.commit()
+    return jsonify("Đã xóa thành công thành công")
 #=========== Sủa danh mục =======
+@app.route('/category/edit',methods=['POST'])
+@jwt_required()
+def category_edit():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
+    myjson = request.get_json()
+    myjson= json.loads(myjson)
+
+    name= myjson['name']
+    name=name.trip()
+    if not name:
+        return "Chưa nhập tiêu đề"
+    id_category= int(myjson['id_category'])
+    id_parent= int(myjson['id_parent'])
+    level= int(myjson['level'])
+    
+    cur = con.cursor()
+    cur.execute("update category set name=%s,id_parent=%s,level=%s where id_category= %s",(name,id_parent,level,id_category))
+    con.commit()
+    return jsonify("Đã edit thành công")
+
 # ========== Thêm tài khoản=======
+@app.route('/account/add',methods=['POST'])
+@jwt_required()
+def account_add():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
+    myjson = request.get_json()
+    myjson = json.loads(myjson) 
+
+    username = myjson['username']
+    username= username.trip()
+    if not username:
+        return "Chưa nhập tên"
+
+    password= myjson['password']
+    email= myjson['email']
+    role= int(myjson['role'])
+    
+    # Get last post id
+    cur = con.cursor()
+    cur.execute("SELECT id_account from account order by id_account desc limit 1")
+    rows = cur.fetchall()
+    lastid= rows[0][0]
+    id_account= lastid+1
+
+    cur = con.cursor()
+    cur.execute("insert into account values (%s,%s,%s,%s,%s)",(id_account,username,password,email,role))
+    con.commit()
+    return jsonify("Đã đăng thành công thành công")
 # ========== Xóa tài khoản =======
+@app.route('/account/del/<int:id_account',methods=['POST'])
+@jwt_required()
+def account_del(id_account):
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
+    cur = con.cursor()
+    cur.execute("DELETE FROM account WHERE id_account=%s;",(id_account))
+    con.commit()
+    return jsonify("Đã đăng thành công thành công")
 #=========== Sủa tài khoản =======
+@app.route('/account/edit',methods=['POST'])
+@jwt_required()
+def account_edit():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return "Bạn không có quyền truy cấp"
+
+    myjson = request.get_json()
+    myjson= json.loads(myjson)
+
+    username= myjson['username']
+    username=username.trip()
+    if not username:
+        return "Chưa nhập tiêu đề"
+
+    password= myjson['password']
+    password= password.strip()
+    if not password: 
+        return "Chưa nhập nội dung"
+    
+    email= myjson['email']
+    email= email.strip()
+    if not email: 
+        return "Chưa nhập nội dung"
+
+    id_account= int(myjson['id_account'])
+    role= int(myjson['role'])
+    
+    cur = con.cursor()
+    cur.execute("update account set username=%s,password=%s,email=%s,role=%s where id_account= %s",(username,password,email,role,id_account))
+    con.commit()
+    return jsonify("Đã edit thành công")
 
 # @app.route('/test2',methods=['GET'])
 # def test2():

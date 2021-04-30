@@ -37,14 +37,14 @@ firebase= pyrebase.initialize_app(config)
 storage= firebase.storage()
 
 # ============ login==============
-# with open("BANH CAM VINH.PNG", "rb") as img_file:
-#     my_string = base64.b64encode(img_file.read())
+with open("BANH CAM VINH.PNG", "rb") as img_file:
+    my_string = base64.b64encode(img_file.read())
 
-# imgdata = base64.b64decode(my_string)
-# # print(imgdata)
-# filename = 'new_image.jpg'  # I assume you have a way of picking unique filenames
-# # with open(filename, 'wb') as f:
-# #     f.write(imgdata)
+imgdata = base64.b64decode(my_string)
+print(type(imgdata))
+filename = 'new_image_2'  # I assume you have a way of picking unique filenames
+# with open(filename, 'wb') as f:
+#     f.write(imgdata)
 
 # storage.child("/img/"+filename).put(imgdata)
 
@@ -71,6 +71,15 @@ def checkpass(email,password):
         return True
     else:
         return False
+
+def getuserid(email):
+    cur = con.cursor()
+    cur.execute("SELECT id_account from account where email='"+str(email)+"'")
+    rows = cur.fetchall()
+    if len(rows) !=0:
+        return rows[0][0]
+    else:
+        return ""
 
 def getuserrole(email):
     cur = con.cursor()
@@ -294,7 +303,7 @@ def post_add():
     email= get_jwt_identity()
 
     cur = con.cursor()
-    cur.execute("insert into post values (?,?,?,?,?,?,?,?,?)",id_post,title,content,status,img_url,create_time,email,id_category,rating)
+    cur.execute("insert into post values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",(id_post,title,content,status,img_url,create_time,getuserid(email),id_category,rating))
     con.commit()
     return jsonify("Đã đăng thành công thành công")
 

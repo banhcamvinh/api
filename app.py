@@ -50,7 +50,7 @@ storage= firebase.storage()
 
 with open("BANH CAM VINH.PNG", "rb") as img_file:
     my_string = base64.b64encode(img_file.read())
-    print(my_string)
+
 imgdata = base64.b64decode(my_string)
 # s= imgdata.decode("ascii")
 # print(s)
@@ -318,7 +318,7 @@ def post_add():
     return jsonify("Đã đăng thành công thành công")
 
 # ========== Xóa bài viết =======
-@app.route('/post/del/<int:id_post',methods=['POST'])
+@app.route('/post/del/<int:id_post>',methods=['POST'])
 @jwt_required()
 def post_del(id_post):
     myjwt=get_jwt()
@@ -403,7 +403,7 @@ def category_add():
     return jsonify("Đã đăng thành công thành công")
 
 # ========== Xóa danh mục =======
-@app.route('/category/del/<int:id_category',methods=['POST'])
+@app.route('/category/del/<int:id_category>',methods=['POST'])
 @jwt_required()
 def category_del(id_category):
     myjwt=get_jwt()
@@ -473,7 +473,7 @@ def account_add():
     con.commit()
     return jsonify("Đã đăng thành công thành công")
 # ========== Xóa tài khoản =======
-@app.route('/account/del/<int:id_account',methods=['POST'])
+@app.route('/account/del/<int:id_account>',methods=['POST'])
 @jwt_required()
 def account_del(id_account):
     myjwt=get_jwt()

@@ -132,26 +132,34 @@ def check_category_exist(id_category):
 #======= 1: unvalid- username + 401
 #======= 2: unvalid- password + 401
 #======= 0: success- + 200 + access_token + refresh_token + user + role
+#======= 3: logedin
 @app.route('/login', methods=['GET'])
 def login():
-    # Get email & password from header + get request for mobile and web
-    email= request.headers.get('email')
-    password= request.headers.get('password')
-    if checkuser(email)== False:
-        return jsonify({'status':1}),401
-    else:
-        if checkpass(email,password)== False:
-            return jsonify({'status':2}),401
+    user_indentify = get_identity_if_logedin()
+    if user_indentify == None:
+         # Get email & password from header + get request for mobile and web
+        email= request.headers.get('email')
+        password= request.headers.get('password')
+        if checkuser(email)== False:
+            return jsonify({'status':1}),401
         else:
-            username= getusername(email)
-            role= getuserrole(email)
-            # add role vào jwt để giữ luôn cả role trong access cookie
-            additional_claims = {"role":role}
-            access_token = create_access_token(email, additional_claims=additional_claims)
-            refresh_token = create_refresh_token(identity=email)
-            resp=jsonify(login='success',status=0,access_token=access_token,refresh_token=refresh_token,email=email,role=role,username=username)
-            set_access_cookies(resp,access_token)
-            return resp,200
+            if checkpass(email,password)== False:
+                return jsonify({'status':2}),401
+            else:
+                username= getusername(email)
+                role= getuserrole(email)
+                # add role vào jwt để giữ luôn cả role trong access cookie
+                additional_claims = {"role":role}
+                access_token = create_access_token(email, additional_claims=additional_claims)
+                refresh_token = create_refresh_token(identity=email)
+                resp=jsonify(login='success',status=0,access_token=access_token,refresh_token=refresh_token,email=email,role=role,username=username)
+                set_access_cookies(resp,access_token)
+                return resp,200
+    else:
+        return jsonify({'status':3}),200
+
+
+   
 
 #======= LOGOUT + GET
 #======= return status
@@ -664,6 +672,15 @@ def index1():
         return render_template('index.html')
     else:
         return jsonify({'Logged':True})
+
+@app.route('/testlogin')
+def test_login():
+    user = get_identity_if_logedin()
+    print(user)
+    if user==None:
+        return jsonify("No User")
+    else:
+        return jsonify({'User':user})
 
 @app.route('/2')
 def index2():

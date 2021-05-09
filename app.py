@@ -47,6 +47,9 @@ config = {
 firebase= pyrebase.initialize_app(config)
 storage= firebase.storage()
 
+# storage.child("/img").delete('Screenshot (7).png')
+# storage.path('/img/Screenshot (7).png').delete()
+
 # ============ Another function==============
 # ===============================
 # ===============================
@@ -193,7 +196,7 @@ def add_view_to_post(id_post):
 # 2- Not Exist Post
 @app.route('/post/approve/<int:id_post>',methods=['POST'])
 @jwt_required()
-def rt_approve(id_post):
+def post_approve(id_post):
     if not check_post_exist(id_post):
         return jsonify({"status":2}),200
     myjwt=get_jwt()
@@ -299,9 +302,9 @@ def post_add():
 # 5: allow - not exists categroy
 # 6: allow - not contains img
 # 7: success
-@app.route('/post/edit',methods=['POST'])
+@app.route('/post/edit/<int:id_post>',methods=['POST'])
 @jwt_required()
-def post_edit():
+def post_edit(id_post):
     myjwt=get_jwt()
     role=myjwt['role']
     if role == 0:
@@ -310,7 +313,6 @@ def post_edit():
     myjson = request.get_json()
     myjson= json.loads(myjson)
 
-    id_post= int(myjson['post_id'])
     if not check_post_exist(id_post):
         return jsonify({'status':1}),200
 
@@ -345,6 +347,88 @@ def post_edit():
     cur.execute("update post set title=%s,content=%s,status=%s,img=%s,id_category=%s where id_post= %s",(title,content,status,img_url,id_category,id_post))
     con.commit()
     return jsonify({"status":7}),200
+
+# ============ Get post with id ============
+# ============ Return status 
+# 0: not exists post
+@app.route('/post/<int:id_post>')
+def get_post(id_post):
+    if not check_post_exist(id_post):
+        return jsonify({'status':0}),200
+
+    cur = con.cursor()
+    cur.execute("SELECT post.title,post.content,post.img,post.create_time,post.rating,account.username from post inner join account on post.create_by= account.id_account where id_post= "+str(id_post))
+    rows = cur.fetchall()
+    colname=[]
+    for i in range(0,6):
+        colname.append(cur.description[i][0])
+
+    rtlist=[]
+    for row in rows:
+        dic={}
+        for i in range(0,6):
+           dic[colname[i]]=row[i]
+        rtlist.append(dic)
+    js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
+    return js,200
+
+# =========== Get post with filter sort and select========
+# Get api with agrument 
+# state --> like where 
+# fields --> like select 
+# sort --> like order by
+# limit --> like limit
+# http://127.0.0.1:5000/post?state=status=1&fields=id_post,title,create_time&sort=create_time desc&limit=2
+@app.route('/post')
+def get_post_filter():
+    state=request.args.get('state')
+    fields= request.args.get('fields')
+    sort= request.args.get('sort')
+    limit=request.args.get('limit')
+
+    if limit != None:
+        limit=" limit "+str(limit)
+    else:
+        limit=""
+
+    if sort != None:
+        sort=sort.replace(","," ")
+        sort=" order by "+sort
+    else:
+        sort=""
+
+    if state != None:       
+        state=state.replace(","," and ")
+        state= " where "+state
+    else:
+        state=""
+
+    if fields != None:
+        num_of_fields=len(fields.split(","))
+    else:
+        num_of_fields=9
+        fields=" * "
+    
+    # sqltest="SELECT "+str(fields)+" from post "+str(state) +str(sort)+str(limit)
+    # print(sqltest)
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT "+str(fields)+" from post "+str(state) +str(sort)+str(limit))
+        rows = cur.fetchall()
+        colname=[]
+        for i in range(0,num_of_fields):
+            colname.append(cur.description[i][0])
+
+        rtlist=[]
+        for row in rows:
+            dic={}
+            for i in range(0,num_of_fields):
+                dic[colname[i]]=row[i]
+            rtlist.append(dic)
+        js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
+    except:
+        return jsonify({'status':0}),200
+    return js,200
 
 
 
@@ -384,9 +468,6 @@ def account_reg():
     con.commit()
     return jsonify({"status":0}),200
 
-
-
-    
 
 # =========== Return all category ==========
 @app.route('/category')
@@ -492,73 +573,6 @@ def account_edit():
 
 
 
-#============ Get post with filter sort and select========
-@app.route('/post')
-def rt_n_post_category():
-    state=request.args.get('state')
-    fields= request.args.get('fields')
-    sort= request.args.get('sort')
-    limit=request.args.get('limit')
-
-    if limit != None:
-        limit=" limit "+str(limit)
-    else:
-        limit=""
-
-    if sort != None:
-        sort=sort.replace(","," ")
-        sort=" order by "+sort
-    else:
-        sort=""
-
-    if state != None:       
-        state=state.replace(","," and ")
-        state= " where "+state
-    else:
-        state=""
-
-    if fields != None:
-        num_of_fields=len(fields.split(","))
-    else:
-        num_of_fields=9
-        fields=" * "
-    
-    cur = con.cursor()
-    sqltest="SELECT "+str(fields)+" from post "+str(state) +str(sort)+str(limit)
-    print(sqltest)
-    cur.execute("SELECT "+str(fields)+" from post "+str(state) +str(sort)+str(limit))
-    rows = cur.fetchall()
-    colname=[]
-    for i in range(0,num_of_fields):
-        colname.append(cur.description[i][0])
-
-    rtlist=[]
-    for row in rows:
-        dic={}
-        for i in range(0,num_of_fields):
-           dic[colname[i]]=row[i]
-        rtlist.append(dic)
-    js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
-    return js
-
-# ============ Get post with id ============
-@app.route('/post/<int:id_post>')
-def rt_post(id_post):
-    cur = con.cursor()
-    cur.execute("SELECT post.title,post.content,post.img,post.create_time,post.rating,account.username from post inner join account on post.create_by= account.id_account where id_post= "+str(id_post))
-    rows = cur.fetchall()
-    colname=[]
-    for i in range(0,6):
-        colname.append(cur.description[i][0])
-
-    rtlist=[]
-    for row in rows:
-        dic={}
-        for i in range(0,6):
-           dic[colname[i]]=row[i]
-        rtlist.append(dic)
-    js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
-    return js
 
 
 
@@ -666,15 +680,6 @@ def index2():
 # def test2():
 #     response=requests.get('http://127.0.0.1:5000/test',headers={'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTYxNzAwOTczOCwianRpIjoiMzMxY2U5MjktYmIzZi00ZmE4LWE0ZTItODlmMTQ4NWM4YTdjIiwibmJmIjoxNjE3MDA5NzM4LCJ0eXBlIjoiYWNjZXNzIiwic3ViIjoiYmN2IiwiZXhwIjoxNjE3MDEwNjM4fQ.jUM0ZKGwF7B0rssEdyg0uPWMTWXvUlcrdEeKL_jQLtM'})
 #     return response.json()
-
-# cur = con.cursor()
-# cur.execute("SELECT * from customer")
-# rows = cur.fetchall()
-# for row in rows:
-#     print("ID =", row[0])
-#     print("Name =", row[1])
-# con.close()
-
 
 # app.config['uploadimg']=['/uploadimg/']
 # @app.route('/img', methods=["POST"])

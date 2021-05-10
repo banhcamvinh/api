@@ -30,7 +30,7 @@ app = Flask(__name__)
 #==== config for cookie========
 app.config['JWT_SECRET_KEY']='APISIMPLEAPP'
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
-app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=1)
 jwt= JWTManager(app)
 
 # =========Fire base config=================
@@ -116,6 +116,15 @@ def check_post_exist(id_post):
 def check_category_exist(id_category):
     cur = con.cursor()
     cur.execute("SELECT id_category from category where id_category='"+str(id_category)+"'")
+    rows = cur.fetchall()
+    if len(rows) != 0:
+        return True
+    else:
+        return False
+
+def check_account_exist(id_account):
+    cur = con.cursor()
+    cur.execute("SELECT id_account from account where id_account="+str(id_account))
     rows = cur.fetchall()
     if len(rows) != 0:
         return True
@@ -438,8 +447,6 @@ def get_post_filter():
         return jsonify({'status':0}),200
     return js,200
 
-
-
 # ========= Đăng kí user
 # ========= return status+ status code
 # 0: success
@@ -476,6 +483,150 @@ def account_reg():
     con.commit()
     return jsonify({"status":0}),200
 
+# ========== Thêm tài khoản=======
+# ========== Return status
+# 0: not allow
+# 1: invalid username
+# 2: invalid email
+# 3: invalid pasword
+# 4: email exist
+# 5: invalid role
+# 6: sql error
+# 7: success
+@app.route('/account/add',methods=['POST'])
+@jwt_required()
+def account_add():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return jsonify({'status':0}),200
+
+    myjson = request.get_json()
+    myjson = json.loads(myjson) 
+
+    email= myjson['email']
+    email= email.trip()
+    if not email:
+        return jsonify({'status':2}),200
+    if checkuser(email):
+        return jsonify({'status':4}),200
+
+    username = myjson['username']
+    username= username.trip()
+    if not username:
+        return jsonify({'status':1}),200
+
+    password= myjson['password']
+    password= password.trip()
+    if not password:
+        return jsonify({'status':3}),200
+    
+    if not myjson['role']:
+        return jsonify({'status':5}),200
+    role= int(myjson['role'])
+    
+    # Get last post id
+    cur = con.cursor()
+    cur.execute("SELECT id_account from account order by id_account desc limit 1")
+    rows = cur.fetchall()
+    lastid= rows[0][0]
+    id_account= lastid+1
+
+    try:
+        cur = con.cursor()
+        cur.execute("insert into account values (%s,%s,%s,%s,%s)",(id_account,username,password,email,role))
+        con.commit()
+    except:
+        return jsonify({'status':6}),200
+    return jsonify({'status':7}),200
+
+# ========== Xóa tài khoản =======
+# ========== Return status
+# 0: not allow
+# 1: not exist account
+# 2: SQL error
+# 3: Success
+@app.route('/account/del/<int:id_account>',methods=['POST'])
+@jwt_required()
+def account_del(id_account):
+    print('ok')
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return jsonify({'status':0}),200
+    if not check_account_exist(id_account):
+        return jsonify({'status':1}),200
+    
+    try:
+        cur = con.cursor()
+        cur.execute("DELETE FROM account WHERE id_account=%s;",(id_account))
+        con.commit()
+    except:
+        return jsonify({'status':2}),200
+    return jsonify({'status':3}),200
+
+#=========== Sửa tài khoản =======
+#=========== Return status
+# 0: not allow
+# 1: invalid emaiil
+# 2: email exist
+# 3: invalid username
+# 4: invalid password
+# 5: not exist account
+# 6: invalid role
+# 7: sql error
+# 8: success
+@app.route('/account/edit',methods=['POST'])
+@jwt_required()
+def account_edit():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return jsonify({'status':0}),200
+
+    myjson = request.get_json()
+    myjson= json.loads(myjson)
+
+    if not check_account_exist(myjson['id_account']):
+        return jsonify({'status':5}),200
+    id_account= int(myjson['id_account'])
+
+    email= myjson['email']
+    email= email.strip()
+    if not email: 
+        return jsonify({'status':1}),200
+    if checkuser(email):
+        return jsonify({'status':2}),200
+
+    username= myjson['username']
+    username=username.trip()
+    if not username:
+        return jsonify({'status':3}),200
+
+    password= myjson['password']
+    password= password.strip()
+    if not password: 
+        return jsonify({'status':4}),200
+
+    if not myjson['role']:
+        return jsonify({'status':6}),200
+    role= int(myjson['role'])
+    
+    try:
+        cur = con.cursor()
+        cur.execute("update account set username=%s,password=%s,email=%s,role=%s where id_account= %s",(username,password,email,role,id_account))
+        con.commit()
+    except:
+        return jsonify({'status':7}),200
+    return jsonify({'status':8}),200
+
+
+
+
+
+
+
+
 
 # =========== Return all category ==========
 @app.route('/category')
@@ -494,93 +645,6 @@ def rt_categories():
         rtlist.append(dic)
     js=json.dumps(rtlist,ensure_ascii=False).encode('utf8')
     return js,200
-
-
-
-
-# ========== Thêm tài khoản=======
-@app.route('/account/add',methods=['POST'])
-@jwt_required()
-def account_add():
-    myjwt=get_jwt()
-    role=myjwt['role']
-    if role == 0:
-        return "Bạn không có quyền truy cấp"
-
-    myjson = request.get_json()
-    myjson = json.loads(myjson) 
-
-    username = myjson['username']
-    username= username.trip()
-    if not username:
-        return "Chưa nhập tên"
-
-    password= myjson['password']
-    email= myjson['email']
-    role= int(myjson['role'])
-    
-    # Get last post id
-    cur = con.cursor()
-    cur.execute("SELECT id_account from account order by id_account desc limit 1")
-    rows = cur.fetchall()
-    lastid= rows[0][0]
-    id_account= lastid+1
-
-    cur = con.cursor()
-    cur.execute("insert into account values (%s,%s,%s,%s,%s)",(id_account,username,password,email,role))
-    con.commit()
-    return jsonify("Đã đăng thành công thành công")
-
-# ========== Xóa tài khoản =======
-@app.route('/account/del/<int:id_account>',methods=['POST'])
-@jwt_required()
-def account_del(id_account):
-    myjwt=get_jwt()
-    role=myjwt['role']
-    if role == 0:
-        return "Bạn không có quyền truy cấp"
-
-    cur = con.cursor()
-    cur.execute("DELETE FROM account WHERE id_account=%s;",(id_account))
-    con.commit()
-    return jsonify("Đã đăng thành công thành công")
-#=========== Sủa tài khoản =======
-@app.route('/account/edit',methods=['POST'])
-@jwt_required()
-def account_edit():
-    myjwt=get_jwt()
-    role=myjwt['role']
-    if role == 0:
-        return "Bạn không có quyền truy cấp"
-
-    myjson = request.get_json()
-    myjson= json.loads(myjson)
-
-    username= myjson['username']
-    username=username.trip()
-    if not username:
-        return "Chưa nhập tiêu đề"
-
-    password= myjson['password']
-    password= password.strip()
-    if not password: 
-        return "Chưa nhập nội dung"
-    
-    email= myjson['email']
-    email= email.strip()
-    if not email: 
-        return "Chưa nhập nội dung"
-
-    id_account= int(myjson['id_account'])
-    role= int(myjson['role'])
-    
-    cur = con.cursor()
-    cur.execute("update account set username=%s,password=%s,email=%s,role=%s where id_account= %s",(username,password,email,role,id_account))
-    con.commit()
-    return jsonify("Đã edit thành công")
-
-
-
 
 
 

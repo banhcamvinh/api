@@ -152,14 +152,14 @@ def login():
                 additional_claims = {"role":role}
                 access_token = create_access_token(email, additional_claims=additional_claims)
                 refresh_token = create_refresh_token(identity=email)
-                resp=jsonify(login='success',status=0,access_token=access_token,refresh_token=refresh_token,email=email,role=role,username=username)
+                resp=jsonify(status=0,access_token=access_token,refresh_token=refresh_token,email=email,role=role,username=username)
                 set_access_cookies(resp,access_token)
                 return resp,200
     else:
-        return jsonify({'status':3}),200
+        claims = get_jwt()
+        username= getusername(claims['sub'])
+        return jsonify({'status':3,'role':claims['role'],'email':claims['sub'],'username':username}),200
 
-
-   
 
 #======= LOGOUT + GET
 #======= return status

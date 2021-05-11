@@ -245,7 +245,7 @@ def post_del(id_post):
         return jsonify({"status":0}),200
     elif role == 1:
         cur = con.cursor()
-        cur.execute("DELETE FROM post WHERE id_post=%s;",(id_post))
+        cur.execute("DELETE FROM post WHERE id_post=%s;",(id_post,))
         con.commit()
         return jsonify({"status":1}),200
 
@@ -336,7 +336,7 @@ def post_edit(id_post):
         return jsonify({'status':1}),200
 
     title= myjson['title']
-    title=title.trip()
+    title=title.strip()
     if not title:
         return jsonify({'status':2}),200
 
@@ -507,19 +507,19 @@ def account_add():
     myjson = json.loads(myjson) 
 
     email= myjson['email']
-    email= email.trip()
+    email= email.strip()
     if not email:
         return jsonify({'status':2}),200
     if checkuser(email):
         return jsonify({'status':4}),200
 
     username = myjson['username']
-    username= username.trip()
+    username= username.strip()
     if not username:
         return jsonify({'status':1}),200
 
     password= myjson['password']
-    password= password.trip()
+    password= password.strip()
     if not password:
         return jsonify({'status':3}),200
     
@@ -601,7 +601,7 @@ def account_edit():
         return jsonify({'status':2}),200
 
     username= myjson['username']
-    username=username.trip()
+    username=username.strip()
     if not username:
         return jsonify({'status':3}),200
 
@@ -663,7 +663,7 @@ def category_add():
     myjson = request.get_json()
     myjson = json.loads(myjson) 
     category_name = myjson['category_name']
-    category_name= category_name.trip()
+    category_name= category_name.strip()
     if not category_name:
         return "Chưa nhập tên"
 
@@ -709,7 +709,7 @@ def category_edit():
     myjson= json.loads(myjson)
 
     name= myjson['name']
-    name=name.trip()
+    name=name.strip()
     if not name:
         return "Chưa nhập tiêu đề"
     id_category= int(myjson['id_category'])

@@ -131,6 +131,15 @@ def check_account_exist(id_account):
     else:
         return False
 
+def check_category_exist(id_category):
+    cur = con.cursor()
+    cur.execute("SELECT id_category from category where id_category="+str(id_account))
+    rows = cur.fetchall()
+    if len(rows) != 0:
+        return True
+    else:
+        return False
+
 # ========== Main function ============
 # ===============================
 # ===============================
@@ -622,14 +631,6 @@ def account_edit():
         return jsonify({'status':7}),200
     return jsonify({'status':8}),200
 
-
-
-
-
-
-
-
-
 # =========== Return all category ==========
 @app.route('/category')
 def rt_categories():
@@ -648,78 +649,128 @@ def rt_categories():
     js=json.dumps(rtlist,ensure_ascii=False).encode('utf8')
     return js,200
 
-
-
-
 # ========== Thêm danh mục=======
+# 0: not allow ===========
+# 1: invalid categrory_name
+# 2: invalid level
+# 3: invalid id_parent
+# 4: not exist id_parent
+# 5: SQL error
+# 6: Success
 @app.route('/category/add',methods=['POST'])
 @jwt_required()
 def category_add():
     myjwt=get_jwt()
     role=myjwt['role']
     if role == 0:
-        return "Bạn không có quyền truy cấp"
+        return jsonify({'status':0}),200
 
     myjson = request.get_json()
     myjson = json.loads(myjson) 
+
     category_name = myjson['category_name']
     category_name= category_name.strip()
     if not category_name:
-        return "Chưa nhập tên"
+        return jsonify({'status':1}),200
 
+    if not myjson['level']:
+        return jsonify({'status':2}),200
     level= int(myjson['level'])
+
+    if not myjson['id_parent']:
+        return jsonify({'status':3}),200
+    id_parent= int(myjson['id_parent'])
+    if not check_category_exist(id_parent):
+        return jsonify({'status':4}),200
 
     # Get last post id
     cur = con.cursor()
     cur.execute("SELECT id_category from category order by id_category desc limit 1")
     rows = cur.fetchall()
     lastid= rows[0][0]
-    id_category= lastid+1
+    if not lastid:
+        id_category=0
+    else:
+        id_category= lastid+1
 
-    id_parent= myjson['id_parent']
-
-    cur = con.cursor()
-    cur.execute("insert into category values (%s,%s,%s,%s)",(id_category,category_name,id_parent,level))
-    con.commit()
-    return jsonify("Đã đăng thành công thành công")
+    try:
+        cur = con.cursor()
+        cur.execute("insert into category values (%s,%s,%s,%s)",(id_category,category_name,id_parent,level))
+        con.commit()
+    except:
+        return jsonify({'status':5}),200
+    return jsonify({'status':6}),200
 
 # ========== Xóa danh mục =======
+# 0: not allow
+# 1: not exist category
+# 2: SQL error
+# 3: success
 @app.route('/category/del/<int:id_category>',methods=['POST'])
 @jwt_required()
 def category_del(id_category):
     myjwt=get_jwt()
     role=myjwt['role']
     if role == 0:
-        return "Bạn không có quyền truy cấp"
+        return jsonify({'status':0}),200
 
-    cur = con.cursor()
-    cur.execute("DELETE FROM category WHERE id_category=%s;",(id_category))
-    con.commit()
-    return jsonify("Đã xóa thành công thành công")
+    if not check_category_exist(id_category):
+        return jsonify({'status':1}),200
+    try:
+        cur = con.cursor()
+        cur.execute("DELETE FROM category WHERE id_category=%s;",(id_category))
+        con.commit()
+    except:
+        return jsonify({'status':2}),200
+    return jsonify({'status':3}),200
+
+
 #=========== Sủa danh mục =======
-@app.route('/category/edit',methods=['POST'])
+# 0: not allow
+# 1: invalid category_name
+# 2: exist id_category
+# 3: invalid id_parent
+# 4: not exist id_parent
+# 5: invalid level
+# 6: SQL error
+# 7: Success
+@app.route('/category/edit/<int:id_category>',methods=['POST'])
 @jwt_required()
-def category_edit():
+def category_edit(id_category):
     myjwt=get_jwt()
     role=myjwt['role']
     if role == 0:
-        return "Bạn không có quyền truy cấp"
+        return jsonify({'status':0}),200
 
     myjson = request.get_json()
     myjson= json.loads(myjson)
 
-    name= myjson['name']
+    name= myjson['category_name']
     name=name.strip()
     if not name:
-        return "Chưa nhập tiêu đề"
+        return jsonify({'status':1}),200
+
+    if check_category_exist(id_category):
+        return jsonify({'status':2}),200
     id_category= int(myjson['id_category'])
+
+    if not myjson['id_parent']:
+        return jsonify({'status':3}),200
+    if not check_category_exist(myjson['id_parent']):
+        return jsonify({'status':4}),200
     id_parent= int(myjson['id_parent'])
+
+    if not myjson['level']:
+        return jsonify({'status':5}),200
     level= int(myjson['level'])
     
-    cur = con.cursor()
-    cur.execute("update category set name=%s,id_parent=%s,level=%s where id_category= %s",(name,id_parent,level,id_category))
-    con.commit()
-    return jsonify("Đã edit thành công")
+    try:
+        cur = con.cursor()
+        cur.execute("update category set name=%s,id_parent=%s,level=%s where id_category= %s",(name,id_parent,level,id_category))
+        con.commit()
+    except:
+        return jsonify({'status':6}),200
+    return jsonify({'status':7}),200
 
 
 

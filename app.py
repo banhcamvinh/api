@@ -271,7 +271,7 @@ def post_add():
     myjson = json.loads(myjson) 
 
     title= myjson['title']
-    title=title.trip()
+    title=title.strip()
     if not title:
         return jsonify({"status":1}),200
 

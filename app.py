@@ -397,6 +397,11 @@ def get_post(id_post):
         for i in range(0,6):
            dic[colname[i]]=row[i]
         rtlist.append(dic)
+    
+    cur = con.cursor()
+    cur.execute("update post set rating= rating + "+str(1)+" where id_post='"+str(id_post)+"'")
+    con.commit()
+
     js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
     return js,200
 
@@ -809,7 +814,10 @@ def index2():
         rtlist.append(str(row[0])+" "+row[1])
     return "<h1>Welcome "+rtlist[1]+"!!</h1>"
 
+def test():
+    pass
 
+#test
 # @app.route('/test2',methods=['GET'])
 # def test2():
 #     response=requests.get('http://127.0.0.1:5000/test',headers={'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTYxNzAwOTczOCwianRpIjoiMzMxY2U5MjktYmIzZi00ZmE4LWE0ZTItODlmMTQ4NWM4YTdjIiwibmJmIjoxNjE3MDA5NzM4LCJ0eXBlIjoiYWNjZXNzIiwic3ViIjoiYmN2IiwiZXhwIjoxNjE3MDEwNjM4fQ.jUM0ZKGwF7B0rssEdyg0uPWMTWXvUlcrdEeKL_jQLtM'})

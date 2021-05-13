@@ -592,9 +592,9 @@ def account_del(id_account):
 # 6: invalid role
 # 7: sql error
 # 8: success
-@app.route('/account/edit',methods=['POST'])
+@app.route('/account/edit/<int:id_account',methods=['POST'])
 @jwt_required()
-def account_edit():
+def account_edit(id_account):
     myjwt=get_jwt()
     role=myjwt['role']
     if role == 0:
@@ -603,9 +603,8 @@ def account_edit():
     myjson = request.get_json()
     myjson= json.loads(myjson)
 
-    if not check_account_exist(myjson['id_account']):
+    if not check_account_exist(id_account):
         return jsonify({'status':5}),200
-    id_account= int(myjson['id_account'])
 
     email= myjson['email']
     email= email.strip()

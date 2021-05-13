@@ -133,7 +133,7 @@ def check_account_exist(id_account):
 
 def check_category_exist(id_category):
     cur = con.cursor()
-    cur.execute("SELECT id_category from category where id_category="+str(id_account))
+    cur.execute("SELECT id_category from category where id_category="+str(id_category))
     rows = cur.fetchall()
     if len(rows) != 0:
         return True

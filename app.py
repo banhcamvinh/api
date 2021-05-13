@@ -140,6 +140,15 @@ def check_category_exist(id_category):
     else:
         return False
 
+def get_category_level(id_category):
+    cur = con.cursor()
+    cur.execute("SELECT level from category where id_category='"+str(id_category)+"'")
+    rows = cur.fetchall()
+    if len(rows) !=0:
+        return rows[0][0]
+    else:
+        return ""
+
 # ========== Main function ============
 # ===============================
 # ===============================
@@ -565,7 +574,6 @@ def account_add():
 @app.route('/account/del/<int:id_account>',methods=['POST'])
 @jwt_required()
 def account_del(id_account):
-    print('ok')
     myjwt=get_jwt()
     role=myjwt['role']
     if role == 0:
@@ -575,7 +583,7 @@ def account_del(id_account):
     
     try:
         cur = con.cursor()
-        cur.execute("DELETE FROM account WHERE id_account=%s;",(id_account))
+        cur.execute("update account set role=-1 WHERE id_account=%s;",(id_account,))
         con.commit()
     except:
         return jsonify({'status':2}),200
@@ -610,8 +618,6 @@ def account_edit(id_account):
     email= email.strip()
     if not email: 
         return jsonify({'status':1}),200
-    if checkuser(email):
-        return jsonify({'status':2}),200
 
     username= myjson['username']
     username=username.strip()
@@ -639,7 +645,7 @@ def account_edit(id_account):
 @app.route('/category')
 def rt_categories():
     cur = con.cursor()
-    cur.execute("SELECT * from category")
+    cur.execute("SELECT * from category where level>0")
     rows = cur.fetchall()
     colname=[]
     for i in range(0,4):
@@ -677,21 +683,26 @@ def category_add():
     if not category_name:
         return jsonify({'status':1}),200
 
-    if not myjson['level']:
-        return jsonify({'status':2}),200
-    level= int(myjson['level'])
+    # if not myjson['level']:
+    #     return jsonify({'status':2}),200
 
     if not myjson['id_parent']:
         return jsonify({'status':3}),200
-    id_parent= int(myjson['id_parent'])
-    if not check_category_exist(id_parent):
-        return jsonify({'status':4}),200
+    if myjson['id_parent'] != 'null':
+        id_parent= int(myjson['id_parent'])
+        if not check_category_exist(id_parent):
+            return jsonify({'status':4}),200
+        level= int(get_category_level)+1
+    else: 
+        id_parent= 'null'
+        level= 1
 
     # Get last post id
     cur = con.cursor()
     cur.execute("SELECT id_category from category order by id_category desc limit 1")
     rows = cur.fetchall()
     lastid= rows[0][0]
+
     if not lastid:
         id_category=0
     else:
@@ -722,7 +733,7 @@ def category_del(id_category):
         return jsonify({'status':1}),200
     try:
         cur = con.cursor()
-        cur.execute("DELETE FROM category WHERE id_category=%s;",(id_category))
+        cur.execute("update category set level=-1 WHERE id_category=%s;",(id_category,))
         con.commit()
     except:
         return jsonify({'status':2}),200
@@ -760,13 +771,19 @@ def category_edit(id_category):
 
     if not myjson['id_parent']:
         return jsonify({'status':3}),200
-    if not check_category_exist(myjson['id_parent']):
-        return jsonify({'status':4}),200
-    id_parent= int(myjson['id_parent'])
+    if myjson['id_parent'] != 'null':
+        if not check_category_exist(myjson['id_parent']):
+            return jsonify({'status':4}),200
+        id_parent= int(myjson['id_parent']) 
+        level= get_category_level(id_parent) + 1
+    else:
+        id_parent='null'
+        level=0
+    
 
-    if not myjson['level']:
-        return jsonify({'status':5}),200
-    level= int(myjson['level'])
+    # if not myjson['level']:
+    #     return jsonify({'status':5}),200
+    # level= int(myjson['level'])
     
     try:
         cur = con.cursor()

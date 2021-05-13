@@ -394,16 +394,16 @@ def get_post(id_post):
         return jsonify({'status':0}),200
 
     cur = con.cursor()
-    cur.execute("SELECT post.title,post.content,post.img,post.create_time,post.rating,account.username from post inner join account on post.create_by= account.id_account where id_post= "+str(id_post))
+    cur.execute("SELECT id_post,post.title,post.content,post.img,post.create_time,post.rating,account.username from post inner join account on post.create_by= account.id_account where id_post= "+str(id_post))
     rows = cur.fetchall()
     colname=[]
-    for i in range(0,6):
+    for i in range(0,7):
         colname.append(cur.description[i][0])
 
     rtlist=[]
     for row in rows:
         dic={}
-        for i in range(0,6):
+        for i in range(0,7):
            dic[colname[i]]=row[i]
         rtlist.append(dic)
     

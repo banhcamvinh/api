@@ -676,7 +676,7 @@ def category_add():
         return jsonify({'status':0}),200
 
     myjson = request.get_json()
-    myjson = json.loads(myjson) 
+    # myjson = json.loads(myjson) 
 
     category_name = myjson['category_name']
     category_name= category_name.strip()
@@ -688,11 +688,11 @@ def category_add():
 
     if not myjson['id_parent']:
         return jsonify({'status':3}),200
-    if myjson['id_parent'] != 'null':
+    if not myjson['id_parent'] == 'null':
         id_parent= int(myjson['id_parent'])
         if not check_category_exist(id_parent):
             return jsonify({'status':4}),200
-        level= int(get_category_level)+1
+        level= int(get_category_level(id_parent))+1
     else: 
         id_parent= 'null'
         level= 1
@@ -710,9 +710,13 @@ def category_add():
 
     try:
         cur = con.cursor()
-        cur.execute("insert into category values (%s,%s,%s,%s)",(id_category,category_name,id_parent,level))
+        if id_parent == 'null':
+            cur.execute("insert into category values (%s,%s,null,%s)",(id_category,category_name,level))
+        else:
+            cur.execute("insert into category values (%s,%s,%s,%s)",(id_category,category_name,id_parent,level))
         con.commit()
     except:
+        
         return jsonify({'status':5}),200
     return jsonify({'status':6}),200
 
@@ -758,16 +762,16 @@ def category_edit(id_category):
         return jsonify({'status':0}),200
 
     myjson = request.get_json()
-    myjson= json.loads(myjson)
+    # myjson= json.loads(myjson)
 
     name= myjson['category_name']
     name=name.strip()
     if not name:
         return jsonify({'status':1}),200
 
-    if check_category_exist(id_category):
-        return jsonify({'status':2}),200
-    id_category= int(myjson['id_category'])
+    # if check_category_exist(id_category):
+    #     return jsonify({'status':2}),200
+    # id_category= int(myjson['id_category'])
 
     if not myjson['id_parent']:
         return jsonify({'status':3}),200
@@ -780,14 +784,16 @@ def category_edit(id_category):
         id_parent='null'
         level=0
     
-
     # if not myjson['level']:
     #     return jsonify({'status':5}),200
     # level= int(myjson['level'])
     
     try:
         cur = con.cursor()
-        cur.execute("update category set name=%s,id_parent=%s,level=%s where id_category= %s",(name,id_parent,level,id_category))
+        if id_parent == 'null':
+            cur.execute("update category set name=%s,id_parent=null,level=%s where id_category= %s",(name,level,id_category))
+        else:
+            cur.execute("update category set name=%s,id_parent=%s,level=%s where id_category= %s",(name,id_parent,level,id_category))
         con.commit()
     except:
         return jsonify({'status':6}),200

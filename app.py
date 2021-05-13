@@ -592,7 +592,7 @@ def account_del(id_account):
 # 6: invalid role
 # 7: sql error
 # 8: success
-@app.route('/account/edit/<int:id_account',methods=['POST'])
+@app.route('/account/edit/<int:id_account>',methods=['POST'])
 @jwt_required()
 def account_edit(id_account):
     myjwt=get_jwt()

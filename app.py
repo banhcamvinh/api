@@ -761,8 +761,11 @@ def category_edit(id_category):
     if role == 0:
         return jsonify({'status':0}),200
 
-    myjson = request.get_json()
-    myjson= json.loads(myjson)
+    try:
+        myjson = request.get_json()
+        myjson= json.loads(myjson)
+    except:
+        return jsonify({'status':"lỗi load json"}),200
 
     name= myjson['category_name']
     name=name.strip()
@@ -843,7 +846,7 @@ def get_acc_all():
 
     try:
         cur = con.cursor()
-        cur.execute("SELECT * from account where role>0")
+        cur.execute("SELECT * from account where role>=0")
         rows = cur.fetchall()
     except:
         return jsonify({'status':1}),200
@@ -930,6 +933,8 @@ def index2():
         rtlist.append(str(row[0])+" "+row[1])
     return "<h1>Welcome "+rtlist[1]+"!!</h1>"
 
+def test():
+    pass
 #test
 # @app.route('/test2',methods=['GET'])
 # def test2():

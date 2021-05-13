@@ -809,6 +809,38 @@ def get_acc_all():
     js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
     return js,200
 
+# ========= Get All Account by id============
+# 0: not allow
+# 1: SQL Error
+@app.route('/account/<int:id_account>',methods=['GET'])
+@jwt_required()
+def get_acc_by_id(id_account):
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return jsonify({'status':0}),200
+
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT * from account where id_account="+str(id_account))
+        rows = cur.fetchall()
+    except:
+        return jsonify({'status':1}),200
+        
+    colname=[]
+    for i in range(0,4):
+        colname.append(cur.description[i][0])
+
+    rtlist=[]
+    for row in rows:
+        dic={}
+        for i in range(0,4):
+           dic[colname[i]]=row[i]
+        rtlist.append(dic)
+
+    js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
+    return js,200
+
 
 @app.route('/test',methods=['GET'])
 @jwt_required()

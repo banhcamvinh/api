@@ -777,6 +777,37 @@ def category_edit(id_category):
         return jsonify({'status':6}),200
     return jsonify({'status':7}),200
 
+# ========= Get All Account for admin ============
+# 0: not allow
+# 1: SQL Error
+@app.route('/account',methods=['GET'])
+@jwt_required()
+def get_acc_all():
+    myjwt=get_jwt()
+    role=myjwt['role']
+    if role == 0:
+        return jsonify({'status':0}),200
+
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT * from account")
+        rows = cur.fetchall()
+    except:
+        return jsonify({'status':1}),200
+        
+    colname=[]
+    for i in range(0,4):
+        colname.append(cur.description[i][0])
+
+    rtlist=[]
+    for row in rows:
+        dic={}
+        for i in range(0,4):
+           dic[colname[i]]=row[i]
+        rtlist.append(dic)
+
+    js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
+    return js,200
 
 
 @app.route('/test',methods=['GET'])
@@ -813,9 +844,6 @@ def index2():
     for row in rows:
         rtlist.append(str(row[0])+" "+row[1])
     return "<h1>Welcome "+rtlist[1]+"!!</h1>"
-
-def test():
-    pass
 
 #test
 # @app.route('/test2',methods=['GET'])

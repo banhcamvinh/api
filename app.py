@@ -676,7 +676,7 @@ def category_add():
         return jsonify({'status':0}),200
 
     myjson = request.get_json()
-    # myjson = json.loads(myjson) 
+    myjson = json.loads(myjson) 
 
     category_name = myjson['category_name']
     category_name= category_name.strip()
@@ -762,7 +762,7 @@ def category_edit(id_category):
         return jsonify({'status':0}),200
 
     myjson = request.get_json()
-    # myjson= json.loads(myjson)
+    myjson= json.loads(myjson)
 
     name= myjson['category_name']
     name=name.strip()
@@ -799,6 +799,37 @@ def category_edit(id_category):
         return jsonify({'status':6}),200
     return jsonify({'status':7}),200
 
+
+#========= get category theo id
+# 0: id not exist
+# 1: SQL Error
+@app.route('/category/<int:id_category>',methods=['GET'])
+def get_category_id(id_category):
+    if not check_category_exist(id_category):
+        return jsonify({'status':0}),200
+
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT * from category where id_category= "+str(id_category))
+        rows = cur.fetchall()
+    except:
+        return jsonify({'status':1}),200
+    colname=[]
+    for i in range(0,3):
+        colname.append(cur.description[i][0])
+
+    rtlist=[]
+    for row in rows:
+        dic={}
+        for i in range(0,3):
+           dic[colname[i]]=row[i]
+        rtlist.append(dic)
+
+    js=json.dumps(rtlist,default = myconverter,ensure_ascii=False).encode('utf8')
+    return js,200
+
+
+
 # ========= Get All Account for admin ============
 # 0: not allow
 # 1: SQL Error
@@ -812,7 +843,7 @@ def get_acc_all():
 
     try:
         cur = con.cursor()
-        cur.execute("SELECT * from account")
+        cur.execute("SELECT * from account where role>0")
         rows = cur.fetchall()
     except:
         return jsonify({'status':1}),200
